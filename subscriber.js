@@ -22,30 +22,31 @@ const session = solace.SolclientFactory.createSession({
   password: solaceConfig.password,
 });
 
-const publishMessage = (session) => {
-  const messageTxt = "Hello from the publisher!!!";
-  const message = solace.SolclientFactory.createMessage();
-  message.setDestination(
-    solace.SolclientFactory.createTopicDestination("test/topic")
-  );
-  message.setBinaryAttachment(messageTxt);
-  message.setDeliveryMode(solace.MessageDeliveryModeType.DIRECT);
-
+const subscribeToTopic = (session) => {
   try {
-    session.send(message);
-    console.log("Message published:", messageTxt);
+    session.subscribe(
+      solace.SolclientFactory.createTopicDestination("test/topic"),
+      true,
+      "Demo Key",
+      10000
+    );
+    console.log("Subscribed to test/topic");
   } catch (err) {
-    console.log("Error while sending the message", err);
+    console.log("Subscription failed:", err);
   }
 };
 
+session.on(solace.SessionEventCode.MESSAGE, (message) => {
+  console.log("Message received", message.getBinaryAttachment());
+});
+
 session.on(solace.SessionEventCode.UP_NOTICE, () => {
-  console.log("Publisher connected to Solace.");
-  publishMessage(session);
+  console.log("Subscriber connected to Solace.");
+  subscribeToTopic(session);
 });
 
 session.on(solace.SessionEventCode.DISCONNECTED, () => {
-  console.log("Publisher disconnect from Solace");
+  console.log("Subscriber disconnected from Solace.");
 });
 
 session.connect();
